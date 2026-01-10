@@ -4,14 +4,13 @@ import socket
 import struct
 import time
 import math
-import pyautogui  # For screen size
+import pyautogui 
 
-# Smoothing and speed control
 prev_x, prev_y = 0, 0
-alpha = 0.7        # Smoothing (0 < alpha < 1)
-speed_factor = 1.8  # >1 = faster cursor, <1 = slower cursor
+alpha = 0.7         
+speed_factor = 1.8  
 
-# MediaPipe setup
+ 
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1)
 mp_draw = mp.solutions.drawing_utils
@@ -19,15 +18,15 @@ cap = cv2.VideoCapture(1)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
-# Screen size
+ 
 screen_width, screen_height = pyautogui.size()
 
-# Socket setup
+ 
 HOST = '127.0.0.1'
 PORT = 5050
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
-print("✅ Connected to Java server!")
+print("  Connected to Java server!")
 
 
 class hand_tracker:
@@ -48,22 +47,13 @@ while True:
     if results.multi_hand_landmarks:
         for handLms in results.multi_hand_landmarks:
             mp_draw.draw_landmarks(frame, handLms, mp_hands.HAND_CONNECTIONS)
-
-            # Get raw hand landmark position
             raw_cx = handLms.landmark[12].x * w
             raw_cy = handLms.landmark[12].y * h
-
-            # Apply smoothing
             smoothed_cx = prev_x * alpha + raw_cx * (1 - alpha)
             smoothed_cy = prev_y * alpha + raw_cy * (1 - alpha)
-
             prev_x, prev_y = smoothed_cx, smoothed_cy
-
-            # Scale to screen with speed factor
             screen_cx = int((smoothed_cx / w) * screen_width * speed_factor)
             screen_cy = int((smoothed_cy / h) * screen_height * speed_factor)
-
-            # Clamp to screen bounds
             screen_cx = min(max(screen_cx, 0), screen_width - 1)
             screen_cy = min(max(screen_cy, 0), screen_height - 1)
 
@@ -73,69 +63,62 @@ while True:
                 print(f"❌ Cursor send error: {e}")
                 break
 
-            # Gesture landmarks
+        
             thumb_tip = handLms.landmark[4]
             index_tip = handLms.landmark[8]
             pinky_tip = handLms.landmark[20]
             thumb_base = handLms.landmark[5]
             now = time.time()
 
-            # 👆 Click Gesture
             if math.hypot((thumb_tip.x - index_tip.x) * w, (thumb_tip.y - index_tip.y) * h) < 30:
                 if now - hand_tracker.last_click < 0.4:
                     try:
                         client_socket.send(b'DCLICK')
-                        print("🖱️ Double click gesture triggered")
+                        print(" Double click gesture triggered")
                     except Exception as e:
-                        print("❌ Double-click send error:", e)
+                        print("Double-click send error:", e)
                     hand_tracker.last_click = 0
                 elif now - hand_tracker.last_click > 1:
                     try:
                         client_socket.send(b'LCLICK')
-                        print("🖱️ Left click gesture triggered")
+                        print("Left click gesture triggered")
                     except Exception as e:
-                        print("❌ Left-click send error:", e)
+                        print("Left-click send error:", e)
                     hand_tracker.last_click = now
-
-            # 🤚 Right Click Gesture
             if math.hypot((thumb_tip.x - pinky_tip.x) * w, (thumb_tip.y - pinky_tip.y) * h) < 30 and now - hand_tracker.last_click > 1:
                 try:
                     client_socket.send(b'RCLICK')
                     hand_tracker.last_click = now
-                    print("🖱️ Right click gesture triggered")
+                    print("Right click gesture triggered")
                 except Exception as e:
-                    print("❌ Right-click send error:", e)
-
-           # 👍 Scroll Gesture (Thumb up/down + fist closed)
+                    print("Right-click send error:", e)
             fingers_folded = (
                 handLms.landmark[8].y > handLms.landmark[6].y and   # Index
                 handLms.landmark[12].y > handLms.landmark[10].y and  # Middle
                 handLms.landmark[16].y > handLms.landmark[14].y and  # Ring
-                handLms.landmark[20].y > handLms.landmark[18].y     # Pinky
+                handLms.landmark[20].y > handLms.landmark[18].y     # Pinki
             )
-
             thumb_straight = abs(thumb_tip.x - thumb_base.x) < 0.1
-
             if fingers_folded and thumb_straight:
                 if thumb_tip.y < thumb_base.y and now - hand_tracker.last_scroll > 1:
                     try:
                         client_socket.send(b'SCROLL_UP')
                         hand_tracker.last_scroll = now
-                        print("⬆️ Scroll up gesture")
+                        print("Scroll up gesture")
                     except Exception as e:
-                        print("❌ Scroll up send error:", e)
+                        print("Scroll up send error:", e)
                 elif thumb_tip.y > thumb_base.y and now - hand_tracker.last_scroll > 1:
                     try:
                         client_socket.send(b'SCROLL_DOWN')
                         hand_tracker.last_scroll = now
-                        print("⬇️ Scroll down gesture")
+                        print("Scroll down gesture")
                     except Exception as e:
-                        print("❌ Scroll down send error:", e)
+                        print("Scroll down send error:", e)
 
-                cv2.imshow("🖐 MediaPipe Hand Tracking", frame)
+                cv2.imshow("MediaPipe Hand Tracking", frame)
                 if cv2.waitKey(1) & 0xFF == 27:
                     break
-
 cap.release()
 cv2.destroyAllWindows()
 client_socket.close()
+
