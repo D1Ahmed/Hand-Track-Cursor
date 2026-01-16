@@ -10,7 +10,6 @@ hands = mp_hands.Hands(max_num_hands=1)
 mp_draw = mp.solutions.drawing_utils
 cap = cv2.VideoCapture(1)  # Use 0 or 1 depending on your webcam
 
-# Socket setup
 HOST = '127.0.0.1'
 PORT = 5050
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
