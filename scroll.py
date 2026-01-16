@@ -5,7 +5,6 @@ import struct
 import time
 import math
 
-# MediaPipe setup
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1)
 mp_draw = mp.solutions.drawing_utils
